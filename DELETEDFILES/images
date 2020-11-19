@@ -1,0 +1,84 @@
+public function show_user_photo()
+{
+  $user_image =  DB::table("t_images_users")
+  ->select('users.user_id','users.name','t_images_users.image_user_src')
+  ->join('users','users.user_id','=','t_images_users.image_user_owner_id')
+  ->where('users.user_id','=',$this->authUserId());
+
+  //return Storage::url($user_image->get()[0]->image_user_src);
+  if($user_image->exists())
+  {
+    return     array(
+           "statut" =>"success",
+           "data"=>$user_image->get()
+         );
+  }else{
+    return array(
+      "statut" =>"failed",
+      "message"=>"this user doesnt has photos"
+    );
+  }
+  //return response()->download($full_image_path);
+  //return response()->download(public_path($path_prefix.'91760364_4221483921202499_4781597767925497856_n.jpg'),'wordpress image');
+
+}
+
+public function telecharger_photo()
+{
+  $user_image =  DB::table("t_images_users")
+  ->select('users.user_id','users.name','t_images_users.image_user_src')
+  ->join('users','users.user_id','=','t_images_users.image_user_owner_id')
+  ->where('users.user_id','=',$this->authUserId());
+ // return $full_image_path =$user_image->get();
+ if($user_image->exists())
+ {       $full_image_path =$user_image->get()[0]->image_user_src;
+
+  return
+      response()->download($full_image_path);
+ }else
+ {
+   return array(
+     "statut" =>"failed",
+     "message"=>"this user doesnt has items"
+   );
+ }
+}
+public function upload_photo(request $request)
+{
+  //$path_prefix = "storage/";
+  //another code
+  if($request->hasFile('photo'))
+  {
+    $imageName = $request->photo->getClientOriginalName();
+   // return $imageName ;
+    //$imageSave = $request->file('photo')->storeAs("public",$imageName);
+    $imageSave = $request->file('photo')->move(public_path("storage/"),$imageName);
+   //$path = Storage::putFile('/public', $request->file('photo','public'));
+   //$path = Storage::putFile('public/', $request->file('photo','public'));
+    //$fullPath =public_path(/*$path_prefix.*/$imageName);
+    //return basename($path);/*$request->file('photo')->getClientOriginalName()*/;
+   // return $this->retrive_size(basename($path));
+   //return $imageSave;
+    $prefix_path = 'https://recitrocapi.herokuapp.com/storage/'.$imageName;
+    DB::table('t_images_users')->insert([
+      "image_user_owner_id"=> $this->authUserId(),
+      "image_user_src"=>$prefix_path
+    ]);
+
+    return array(
+      "statut" =>"success",
+      "message"=>"image uploaded"
+    );
+  }
+  /*$filename ="wp2.png";
+  $path = $request->file('photo')->move(public_path("/"),$filename);
+  $photoURL = url('/'.$filename);
+  return response()->json(["url"=>$photoURL],200);*/
+ }
+ public function retrive_size($filename)
+ {
+   //$url = Storage::url('upload.jpg');
+   $size = Storage::size($filename);
+   return $size;
+   //http://127.0.0.1:8000/storage/FnSSTfOp5VISKtdMRNxcvLhgoe77k4L9KR9gIf4X.jpeg
+ }
